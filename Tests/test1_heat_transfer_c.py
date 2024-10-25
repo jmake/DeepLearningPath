@@ -19,7 +19,7 @@ if gpus:
 else:
     print("No GPU detected.")
 
-exit()
+#exit()
 
 def create_matrix(Nx, Ny, alpha, delta_x, delta_y, delta_t):
     r_x = alpha * delta_t / (delta_x ** 2)
