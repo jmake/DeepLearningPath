@@ -5,9 +5,21 @@ import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 import numpy as np
-import tensorflow as tf
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+
+import tensorflow as tf
+
+## nvidia-smi 
+## nvcc --version
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    print(f"GPUs detected: {[gpu.name for gpu in gpus]}")
+    tf.config.set_visible_devices(gpus[0], 'GPU') 
+else:
+    print("No GPU detected.")
+
+exit()
 
 def create_matrix(Nx, Ny, alpha, delta_x, delta_y, delta_t):
     r_x = alpha * delta_t / (delta_x ** 2)
@@ -108,6 +120,3 @@ if __name__ == "__main__":
 
     ani = FuncAnimation(fig, animate, frames=Nt, interval=10, blit=True)
     plt.show()
-
-
-
