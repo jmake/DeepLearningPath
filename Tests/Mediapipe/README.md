@@ -9,3 +9,6 @@ https://mediapipe-studio.webapps.google.com/studio/demo/hand_landmarker
 
 https://github.com/google-ai-edge/mediapipe-samples
 
+https://github.com/google-ai-edge/mediapipe
+
+
