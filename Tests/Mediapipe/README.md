@@ -12,3 +12,9 @@ https://github.com/google-ai-edge/mediapipe-samples
 https://github.com/google-ai-edge/mediapipe
 
 
+## Training 
+
+https://codeburst.io/creating-calculators-in-mediapipe-beyond-the-documentation-83e1883b91a
+
+https://github.com/jmake/SigNN
+
