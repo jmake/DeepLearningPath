@@ -11,6 +11,8 @@ https://github.com/google-ai-edge/mediapipe-samples
 
 https://github.com/google-ai-edge/mediapipe
 
+## React
+https://codesandbox.io/p/sandbox/icy-brook-5pqne?file=%2Fpackage.json
 
 ## Training (Day 5)
 
