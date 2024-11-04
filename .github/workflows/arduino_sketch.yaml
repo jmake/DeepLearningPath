@@ -1,0 +1,43 @@
+name: arduino_sketch 
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Tests/Arduino/*.ino
+
+  workflow_dispatch : 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Arduino CLI
+        run: |
+          wget https://arduino.github.io/arduino-cli/installation/arduino-cli-linux-amd64.tar.gz
+          tar -xzf arduino-cli-linux-amd64.tar.gz
+          sudo mv arduino-cli /usr/local/bin/
+          rm arduino-cli-linux-amd64.tar.gz
+
+      - name: Configure Arduino CLI
+        run: |
+          arduino-cli config init
+          arduino-cli config set board_manager.additional_urls https://downloads.arduino.cc/packages/arduino_index.json
+          arduino-cli core update-index
+          arduino-cli core install arduino:samd
+
+      - name: Compile Arduino Sketch
+        run: |
+          arduino-cli compile --fqbn arduino:samd:nano_33_bluetooth Tests/Arduino/sketch02_led_control.ino
+
+      # Uncomment the following section to upload the code
+      # - name: Upload to Arduino
+      #   run: |
+      #     arduino-cli upload -p /dev/ttyUSB0 --fqbn arduino:samd:nano_33_bluetooth path/to/your/sketch
+
+
