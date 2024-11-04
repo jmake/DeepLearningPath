@@ -1,4 +1,4 @@
-#include <ArduinoBLE.h>
+#include <ArduinoBLE.h> // Arduino Nano 33 BLE
 
 class BluetoothDevice 
 {
