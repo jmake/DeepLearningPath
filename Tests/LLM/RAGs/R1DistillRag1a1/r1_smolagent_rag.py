@@ -66,9 +66,18 @@ Answer:"""
 
 # Create the primary agent to direct the conversation
 tool_model = get_model(tool_model_id)
-primary_agent = ToolCallingAgent(tools=[rag_with_reasoner], model=tool_model, add_base_tools=False, max_steps=3)
+
+## Test
+agent = CodeAgent(tools=[rag_with_reasoner], model=tool_model, max_steps=4, verbosity_level=2)
+agent_input = "Compare and contrast the services offered by RankBoost and Omni Marketing"
+agent_output = agent.run(agent_input)
+print("Final output:")
+print(agent_output)
+
 
 # Example prompt: Compare and contrast the services offered by RankBoost and Omni Marketing
+primary_agent = ToolCallingAgent(tools=[rag_with_reasoner], model=tool_model, add_base_tools=False, max_steps=3)
+
 def main():
     GradioUI(primary_agent).launch()
 
