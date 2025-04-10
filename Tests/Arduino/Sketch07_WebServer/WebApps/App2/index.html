@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Ardunino BLE DU AI</title>
+    <!--
+    python -m http.server
+    -->
+
+    <!--script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js"></scrip-->    
+
+    <script src="https://cdn.jsdelivr.net/gh/psiphi75/ahrs@master/build/www-ahrs.js"></script>
+
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+
+    <link href="https://unpkg.com/uplot@1.6.21/dist/uPlot.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/uplot@1.6.21/dist/uPlot.iife.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.4/mqtt.js" integrity="sha512-pNF3XyrtsAdVwg2HJM+tpzKCO5mtPieY+X+q0HEnAuI6OeaDTEDpG1aTnaOR8O1xfvUWY9R5MG2+xNCx+Zeq2w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        #plot_2 {width:100%; height:500px; border:1px solid #ccc;}
+        #plot_3 {width:100%; height:500px; position: relative; border:1px solid #ccc;}
+        #plot_3_canvas {width: 100%;height: 100%;}
+    </style>
+</head>
+<body>
+<!------------------------------------------------------------------------>
+<header id="header_container"> <p> AI DU DashBoard </p> </header> 
+
+<main>
+
+<!------------------------------------------------------------------------>
+<section>
+    <form>
+        <label for="allDevices">All Devices</label>
+        <input id="allDevices" type="checkbox" checked>
+    </form>    
+
+    <div class="buttons">
+        <button id="id_connect">Connect</button>
+    </div>
+</section>
+<!------------------------------------------------------------------------>
+
+
+<!------------------------------------------------------------------------>
+<section>
+    <div class="buttons">
+        <button id="id_led">Toggle Led</button>
+        <button id="id_disconnect">Disconnect</button>
+    </div>
+</section>
+
+<!------------------------------------------------------------------------>
+<section>
+</section>
+<!------------------------------------------------------------------------>
+
+<!------------------------------------------------------------------------>
+<section>
+    <div id="stream_2" style="width:100%;height:400px;"></div>
+</section>
+<!------------------------------------------------------------------------>
+
+
+<!------------------------------------------------------------------------>
+<section>
+    <div id="stream_1" style="width:100%;height:400px;"></div>
+</section>
+<!------------------------------------------------------------------------>
+
+
+<!------------------------------------------------------------------------>
+<section>
+    <div id="plot_1"></div>
+</section>
+<!------------------------------------------------------------------------>
+
+
+<!------------------------------------------------------------------------>
+<section>
+</section>
+<!------------------------------------------------------------------------>
+
+<!------------------------------------------------------------------------>
+<section>
+</section>
+<!------------------------------------------------------------------------>
+
+
+
+<!------------------------------------------------------------------------>
+<section>
+
+    <div id="stream_3">
+    </div>
+
+    <div class="buttons">
+        <button id="id_save_1">Save ACC</button>
+        <button id="id_save_2">Save IMU</button>
+    </div>
+
+    <div id="plot_3">
+        <canvas id="plot_3_canvas"></canvas>
+    </div>
+
+    <div class="buttons">
+        <button id="id_plot3d">Plot</button>
+    </div>
+
+</section>
+<!------------------------------------------------------------------------>
+
+
+</main>
+
+<footer id="footer_container"> <p>&copy; SpicyTech, 2025.</p> </footer>
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+
+<!------------------------------------------------------------------------>
+<script>
+
+class Madgwick1 
+{
+      constructor(sampleFreq = 100.0, beta = 0.1) {
+        this.sampleFreq = sampleFreq;
+        this.beta = beta;
+        this.q0 = 1.0;
+        this.q1 = 0.0;
+        this.q2 = 0.0;
+        this.q3 = 0.0;
+      }
+    
+      update(gx, gy, gz, ax, ay, az, mx = 0, my = 0, mz = 0) {
+        let q0 = this.q0, q1 = this.q1, q2 = this.q2, q3 = this.q3;
+        let recipNorm;
+        let s0, s1, s2, s3;
+        let qDot1, qDot2, qDot3, qDot4;
+        let hx, hy;
+        let _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
+    
+        recipNorm = Math.sqrt(ax * ax + ay * ay + az * az);
+        ax *= recipNorm;
+        ay *= recipNorm;
+        az *= recipNorm;
+    
+        recipNorm = Math.sqrt(mx * mx + my * my + mz * mz);
+        mx *= recipNorm;
+        my *= recipNorm;
+        mz *= recipNorm;
+    
+        _2q0mx = 2 * q0 * mx;
+        _2q0my = 2 * q0 * my;
+        _2q0mz = 2 * q0 * mz;
+        _2q1mx = 2 * q1 * mx;
+        _2bx = Math.sqrt(_2q0mx * _2q0mx + (_2q1mx - _2q0mz) * (_2q1mx - _2q0mz));
+        _2bz = _2q0mz * _2bx + (_2q1mx - _2q0mz) * _2q1mx;
+        _4bx = 2 * _2bx;
+        _4bz = 2 * _2bz;
+    
+        _2q0 = 2 * q0;
+        _2q1 = 2 * q1;
+        _2q2 = 2 * q2;
+        _2q3 = 2 * q3;
+        _2q0q2 = 2 * q0 * q2;
+        _2q2q3 = 2 * q2 * q3;
+        q0q0 = q0 * q0;
+        q0q1 = q0 * q1;
+        q0q2 = q0 * q2;
+        q0q3 = q0 * q3;
+        q1q1 = q1 * q1;
+        q1q2 = q1 * q2;
+        q1q3 = q1 * q3;
+        q2q2 = q2 * q2;
+        q2q3 = q2 * q3;
+        q3q3 = q3 * q3;
+    
+        s0 = _4bx * q0q2 + _2bz * q2 + (-_2q0 + _4bx * q1q3 + _2bz * q3) * ax + (_2q1 + _4bx * q0q1 + _2bz * q1) * ay + (-_4bx * q0q3 + _2bz * q1 - _2q2 + _4bx * q2q2) * az;
+        s1 = _4bx * q1q2 + _2bz * q3 + (_2q2 + _4bx * q0q0 - _4bx * q1q1 - _2bz * q1) * ax + (-_2q0 + _4bx * q0q1 + _2bz * q0) * ay + (_2q3 + _4bx * q1q3 - _2bz * q2 - _4bx * q2q3) * az;
+        s2 = -_4bx * q0q2 + _2bz * q0 + (_2q3 - _4bx * q1q3 + _2bz * q2) * ax + (_2q0 + _4bx * q0q0 - _4bx * q2q2 - _2bz * q2) * ay + (-_2q1 + _4bx * q1q2 + _2bz * q3 + _4bx * q3q3) * az;
+        s3 = -_4bx * q1q2 + _2bz * q1 + (-_2q1 + _4bx * q0q3 + _2bz * q3) * ax + (-_2q2 + _4bx * q2q3 - _2bz * q0) * ay + (_2q0 + _4bx * q0q0 - _4bx * q3q3 - _2bz * q3) * az;
+    
+        recipNorm = Math.sqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
+        s0 /= recipNorm;
+        s1 /= recipNorm;
+        s2 /= recipNorm;
+        s3 /= recipNorm;
+    
+        qDot1 = 0.5 * (-q1 * gx - q2 * gy - q3 * gz) - this.beta * s0;
+        qDot2 = 0.5 * (q0 * gx + q2 * gz - q3 * gy) - this.beta * s1;
+        qDot3 = 0.5 * (q0 * gy - q1 * gz + q3 * gx) - this.beta * s2;
+        qDot4 = 0.5 * (q0 * gz + q1 * gy - q2 * gx) - this.beta * s3;
+    
+        q0 += qDot1 * (1.0 / this.sampleFreq);
+        q1 += qDot2 * (1.0 / this.sampleFreq);
+        q2 += qDot3 * (1.0 / this.sampleFreq);
+        q3 += qDot4 * (1.0 / this.sampleFreq);
+    
+        recipNorm = Math.sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+        q0 /= recipNorm;
+        q1 /= recipNorm;
+        q2 /= recipNorm;
+        q3 /= recipNorm;
+    
+        this.q0 = q0;
+        this.q1 = q1;
+        this.q2 = q2;
+        this.q3 = q3;
+      }
+    
+      getQuaternion() {
+          return [this.q0, this.q1, this.q2, this.q3];
+      }
+    
+      getEulerAngles() {
+        let q0 = this.q0, q1 = this.q1, q2 = this.q2, q3 = this.q3;
+    
+        let roll = Math.atan2(2*(q0*q1 + q2*q3), 1 - 2*(q1*q1 + q2*q2));
+        let pitch = Math.asin(2*(q0*q2 - q3*q1));
+        let yaw = Math.atan2(2*(q0*q3 + q1*q2), 1 - 2*(q2*q2 + q3*q3));
+    
+        return {
+            roll: roll * (180/Math.PI),
+            pitch: pitch * (180/Math.PI),
+            yaw: yaw * (180/Math.PI)
+        };
+      }
+}
+    
+
+
+// AHRS.js - Vanilla JavaScript version for frontend use
+// SEE : https://www.npmjs.com/package/ahrs
+'use strict';
+
+const rad2deg = 180.0 / Math.PI;
+
+// ================== Madgwick Algorithm ==================
+function Madgwick(sampleInterval, options) {
+  options = options || {};
+  const sampleFreq = 1000 / sampleInterval;
+  let beta = options.beta || 0.4;
+  let initalised = options.doInitialisation === true ? false : true;
+
+  let q0 = 1.0, q1 = 0.0, q2 = 0.0, q3 = 0.0;
+  let recipSampleFreq = 1.0 / sampleFreq;
+
+  function madgwickAHRSUpdateIMU(gx, gy, gz, ax, ay, az) {
+    let recipNorm, s0, s1, s2, s3, qDot1, qDot2, qDot3, qDot4;
+    let v2q0, v2q1, v2q2, v2q3, v4q0, v4q1, v4q2, v8q1, v8q2, q0q0, q1q1, q2q2, q3q3;
+
+    qDot1 = 0.5 * (-q1 * gx - q2 * gy - q3 * gz);
+    qDot2 = 0.5 * (q0 * gx + q2 * gz - q3 * gy);
+    qDot3 = 0.5 * (q0 * gy - q1 * gz + q3 * gx);
+    qDot4 = 0.5 * (q0 * gz + q1 * gy - q2 * gx);
+
+    if (!(ax === 0.0 && ay === 0.0 && az === 0.0)) {
+      recipNorm = (ax * ax + ay * ay + az * az) ** -0.5;
+      ax *= recipNorm; ay *= recipNorm; az *= recipNorm;
+
+      v2q0 = 2.0 * q0; v2q1 = 2.0 * q1; v2q2 = 2.0 * q2; v2q3 = 2.0 * q3;
+      v4q0 = 4.0 * q0; v4q1 = 4.0 * q1; v4q2 = 4.0 * q2; v8q1 = 8.0 * q1; v8q2 = 8.0 * q2;
+      q0q0 = q0 * q0; q1q1 = q1 * q1; q2q2 = q2 * q2; q3q3 = q3 * q3;
+
+      s0 = v4q0 * q2q2 + v2q2 * ax + v4q0 * q1q1 - v2q1 * ay;
+      s1 = v4q1 * q3q3 - v2q3 * ax + 4.0 * q0q0 * q1 - v2q0 * ay - v4q1 + v8q1 * q1q1 + v8q1 * q2q2 + v4q1 * az;
+      s2 = 4.0 * q0q0 * q2 + v2q0 * ax + v4q2 * q3q3 - v2q3 * ay - v4q2 + v8q2 * q1q1 + v8q2 * q2q2 + v4q2 * az;
+      s3 = 4.0 * q1q1 * q3 - v2q1 * ax + 4.0 * q2q2 * q3 - v2q2 * ay;
+      
+      recipNorm = (s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3) ** -0.5;
+      s0 *= recipNorm; s1 *= recipNorm; s2 *= recipNorm; s3 *= recipNorm;
+
+      qDot1 -= beta * s0; qDot2 -= beta * s1; qDot3 -= beta * s2; qDot4 -= beta * s3;
+    }
+
+    q0 += qDot1 * recipSampleFreq; q1 += qDot2 * recipSampleFreq;
+    q2 += qDot3 * recipSampleFreq; q3 += qDot4 * recipSampleFreq;
+
+    recipNorm = (q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3) ** -0.5;
+    q0 *= recipNorm; q1 *= recipNorm; q2 *= recipNorm; q3 *= recipNorm;
+  }
+
+  function cross_product(ax, ay, az, bx, by, bz) {
+    return { x: ay*bz - az*by, y: az*bx - ax*bz, z: ax*by - ay*bx };
+  }
+
+  function eulerAnglesFromImuRad(ax, ay, az, mx, my, mz) {
+    const pitch = -Math.atan2(ax, Math.sqrt(ay*ay + az*az));
+    const tmp1 = cross_product(ax, ay, az, 1.0, 0.0, 0.0);
+    const tmp2 = cross_product(1.0, 0.0, 0.0, tmp1.x, tmp1.y, tmp1.z);
+    const roll = Math.atan2(tmp2.y, tmp2.z);
+    const cr = Math.cos(roll), sp = Math.sin(pitch), sr = Math.sin(roll);
+    const yh = my*cr - mz*sr;
+    const xh = mx*Math.cos(pitch) + my*sr*sp + mz*cr*sp;
+    const heading = -Math.atan2(yh, xh);
+    return { heading, pitch, roll };
+  }
+
+  function toQuaternion(eulerAngles) {
+    const cy = Math.cos(eulerAngles.heading*0.5), sy = Math.sin(eulerAngles.heading*0.5);
+    const cp = Math.cos(eulerAngles.pitch*0.5), sp = Math.sin(eulerAngles.pitch*0.5);
+    const cr = Math.cos(eulerAngles.roll*0.5), sr = Math.sin(eulerAngles.roll*0.5);
+    return {
+      w: cr*cp*cy + sr*sp*sy, x: sr*cp*cy - cr*sp*sy,
+      y: cr*sp*cy + sr*cp*sy, z: cr*cp*sy - sr*sp*cy
+    };
+  }
+
+  function init(ax, ay, az, mx, my, mz) {
+    const ea = eulerAnglesFromImuRad(ax, ay, az, mx, my, mz);
+    const iq = toQuaternion(ea);
+    const recipNorm = (iq.w*iq.w + iq.x*iq.x + iq.y*iq.y + iq.z*iq.z) ** -0.5;
+    q0 = iq.w * recipNorm; q1 = iq.x * recipNorm; q2 = iq.y * recipNorm; q3 = iq.z * recipNorm;
+    initalised = true;
+  }
+
+  function madgwickAHRSUpdate(gx, gy, gz, ax, ay, az, mx, my, mz, deltaTimeSec) {
+    recipSampleFreq = deltaTimeSec || recipSampleFreq;
+    if (!initalised) init(ax, ay, az, mx, my, mz);
+    if (mx === undefined || my === undefined || mz === undefined || (mx === 0 && my === 0 && mz === 0)) {
+      madgwickAHRSUpdateIMU(gx, gy, gz, ax, ay, az);
+      return;
+    }
+
+    let recipNorm, s0, s1, s2, s3, qDot1, qDot2, qDot3, qDot4;
+    let hx, hy, v2q0mx, v2q0my, v2q0mz, v2q1mx, v2bx, v2bz, v4bx, v4bz, v2q0, v2q1, v2q2, v2q3, v2q0q2, v2q2q3;
+    let q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
+
+    qDot1 = 0.5 * (-q1*gx - q2*gy - q3*gz);
+    qDot2 = 0.5 * (q0*gx + q2*gz - q3*gy);
+    qDot3 = 0.5 * (q0*gy - q1*gz + q3*gx);
+    qDot4 = 0.5 * (q0*gz + q1*gy - q2*gx);
+
+    if (!(ax === 0.0 && ay === 0.0 && az === 0.0)) {
+      recipNorm = (ax*ax + ay*ay + az*az) ** -0.5;
+      ax *= recipNorm; ay *= recipNorm; az *= recipNorm;
+      recipNorm = (mx*mx + my*my + mz*mz) ** -0.5;
+      mx *= recipNorm; my *= recipNorm; mz *= recipNorm;
+
+      v2q0mx = 2.0 * q0 * mx; v2q0my = 2.0 * q0 * my; v2q0mz = 2.0 * q0 * mz;
+      v2q1mx = 2.0 * q1 * mx; v2q0 = 2.0 * q0; v2q1 = 2.0 * q1; v2q2 = 2.0 * q2; v2q3 = 2.0 * q3;
+      v2q0q2 = 2.0 * q0 * q2; v2q2q3 = 2.0 * q2 * q3;
+      q0q0 = q0 * q0; q0q1 = q0 * q1; q0q2 = q0 * q2; q0q3 = q0 * q3;
+      q1q1 = q1 * q1; q1q2 = q1 * q2; q1q3 = q1 * q3; q2q2 = q2 * q2; q2q3 = q2 * q3; q3q3 = q3 * q3;
+
+      hx = mx*q0q0 - v2q0my*q3 + v2q0mz*q2 + mx*q1q1 + v2q1*my*q2 + v2q1*mz*q3 - mx*q2q2 - mx*q3q3;
+      hy = v2q0mx*q3 + my*q0q0 - v2q0mz*q1 + v2q1mx*q2 - my*q1q1 + my*q2q2 + v2q2*mz*q3 - my*q3q3;
+      v2bx = Math.sqrt(hx*hx + hy*hy);
+      v2bz = -v2q0mx*q2 + v2q0my*q1 + mz*q0q0 + v2q1mx*q3 - mz*q1q1 + v2q2*my*q3 - mz*q2q2 + mz*q3q3;
+      v4bx = 2.0 * v2bx; v4bz = 2.0 * v2bz;
+
+      s0 = -v2q2*(2.0*q1q3 - v2q0q2 - ax) + v2q1*(2.0*q0q1 + v2q2q3 - ay) - v2bz*q2*(v2bx*(0.5 - q2q2 - q3q3) + v2bz*(q1q3 - q0q2) - mx) + (-v2bx*q3 + v2bz*q1)*(v2bx*(q1q2 - q0q3) + v2bz*(q0q1 + q2q3) - my) + v2bx*q2*(v2bx*(q0q2 + q1q3) + v2bz*(0.5 - q1q1 - q2q2) - mz);
+      s1 = v2q3*(2.0*q1q3 - v2q0q2 - ax) + v2q0*(2.0*q0q1 + v2q2q3 - ay) - 4.0*q1*(1 - 2.0*q1q1 - 2.0*q2q2 - az) + v2bz*q3*(v2bx*(0.5 - q2q2 - q3q3) + v2bz*(q1q3 - q0q2) - mx) + (v2bx*q2 + v2bz*q0)*(v2bx*(q1q2 - q0q3) + v2bz*(q0q1 + q2q3) - my) + (v2bx*q3 - v4bz*q1)*(v2bx*(q0q2 + q1q3) + v2bz*(0.5 - q1q1 - q2q2) - mz);
+      s2 = -v2q0*(2.0*q1q3 - v2q0q2 - ax) + v2q3*(2.0*q0q1 + v2q2q3 - ay) - 4.0*q2*(1 - 2.0*q1q1 - 2.0*q2q2 - az) + (-v4bx*q2 - v2bz*q0)*(v2bx*(0.5 - q2q2 - q3q3) + v2bz*(q1q3 - q0q2) - mx) + (v2bx*q1 + v2bz*q3)*(v2bx*(q1q2 - q0q3) + v2bz*(q0q1 + q2q3) - my) + (v2bx*q0 - v4bz*q2)*(v2bx*(q0q2 + q1q3) + v2bz*(0.5 - q1q1 - q2q2) - mz);
+      s3 = v2q1*(2.0*q1q3 - v2q0q2 - ax) + v2q2*(2.0*q0q1 + v2q2q3 - ay) + (-v4bx*q3 + v2bz*q1)*(v2bx*(0.5 - q2q2 - q3q3) + v2bz*(q1q3 - q0q2) - mx) + (-v2bx*q0 + v2bz*q2)*(v2bx*(q1q2 - q0q3) + v2bz*(q0q1 + q2q3) - my) + v2bx*q1*(v2bx*(q0q2 + q1q3) + v2bz*(0.5 - q1q1 - q2q2) - mz);
+      
+      recipNorm = (s0*s0 + s1*s1 + s2*s2 + s3*s3) ** -0.5;
+      s0 *= recipNorm; s1 *= recipNorm; s2 *= recipNorm; s3 *= recipNorm;
+
+      qDot1 -= beta*s0; qDot2 -= beta*s1; qDot3 -= beta*s2; qDot4 -= beta*s3;
+    }
+
+    q0 += qDot1*recipSampleFreq; q1 += qDot2*recipSampleFreq;
+    q2 += qDot3*recipSampleFreq; q3 += qDot4*recipSampleFreq;
+
+    recipNorm = (q0*q0 + q1*q1 + q2*q2 + q3*q3) ** -0.5;
+    q0 *= recipNorm; q1 *= recipNorm; q2 *= recipNorm; q3 *= recipNorm;
+  }
+
+  return {
+    update: madgwickAHRSUpdate,
+    init,
+    getQuaternion() { return { w: q0, x: q1, y: q2, z: q3 }; }
+  };
+}
+
+// ================== Main AHRS Class ==================
+function AHRS(options) {
+  options = options || {};
+  const sampleInterval = options.sampleInterval || 20;
+  const algorithmName = options.algorithm || 'Madgwick';
+
+  let algorithmFn;
+  if (algorithmName === 'Mahony') {
+    algorithmFn = Mahony(sampleInterval, options);
+  } else {
+    algorithmFn = Madgwick(sampleInterval, options);
+  }
+
+  // Copy all properties
+  const self = this;
+  Object.keys(algorithmFn).forEach(prop => self[prop] = algorithmFn[prop]);
+}
+
+// Add utility methods to AHRS prototype
+AHRS.prototype.toVector = function() {
+  const q = this.getQuaternion();
+  const angle = 2 * Math.acos(q.w);
+  const sinAngle = Math.sin(angle / 2);
+  return { angle, x: q.x/sinAngle, y: q.y/sinAngle, z: q.z/sinAngle };
+};
+
+AHRS.prototype.getEulerAngles = function() {
+  const q = this.getQuaternion();
+  const ww = q.w*q.w, xx = q.x*q.x, yy = q.y*q.y, zz = q.z*q.z;
+  return {
+    heading: Math.atan2(2*(q.x*q.y + q.z*q.w), xx - yy - zz + ww),
+    pitch: -Math.asin(2*(q.x*q.z - q.y*q.w)),
+    roll: Math.atan2(2*(q.y*q.z + q.x*q.w), -xx - yy + zz + ww)
+  };
+};
+
+AHRS.prototype.getEulerAnglesDegrees = function() {
+  const rad = this.getEulerAngles();
+  return {
+    heading: rad.heading * rad2deg,
+    pitch: rad.pitch * rad2deg,
+    roll: rad.roll * rad2deg
+  };
+};
+
+// ================== How to Use ==================
+// In your browser:
+// const ahrs = new AHRS({ algorithm: 'Madgwick', sampleInterval: 20 });
+// ahrs.update(gx, gy, gz, ax, ay, az, mx, my, mz);
+// const angles = ahrs.getEulerAnglesDegrees();
+/*
+ahrs.init(floatArray[1], floatArray[2], floatArray[3], floatArray[4], floatArray[5], floatArray[6]);
+ahrs.update(gx, gy, gz, floatArray[1], floatArray[2], floatArray[3], floatArray[4], floatArray[5], floatArray[6]);
+const angles = ahrs.getEulerAnglesDegrees();
+console.log(angles);
+EL PROBLEMA ES QUE LOS ANGULOS SE VAN ACUMULANDO CON EL TIEMPO.
+*/
+
+</script>
+    
+
+<!------------------------------------------------------------------------>
+<script>
+let stream_t1 = []; 
+let stream_x1 = []; 
+let stream_y1 = [];
+let stream_z1 = [];
+let stream_total = []; 
+let stream_shift_n = 200; 
+let milliseconds = 0.1; 
+
+
+let imu_total = []; 
+
+
+function streaming_update_1(div_id, t1, x1, y1, z1, n1)
+{
+    if (t1.length > n1) 
+    {
+        t1.shift();
+        x1.shift();
+        y1.shift();
+        z1.shift();
+    }
+
+    let xs = [t1, t1, t1]; 
+    let ys = [x1, y1, z1]; 
+    Plotly.update(div_id, {x:xs, y:ys}, [0,1,2]);
+}
+
+function streaming_create_1(div_id) 
+{
+    var layout = {title: {text: 'Title'} };
+    let trace_1 = {x:[], y:[], type:'scattergl', mode:'lines', name:"x", line:{width:1}}; 
+    let trace_2 = {x:[], y:[], type:'scattergl', mode:'lines', name:"y", line:{width:1}}; 
+    let trace_3 = {x:[], y:[], type:'scattergl', mode:'lines', name:"z", line:{width:1,dash:'dot'}}; 
+
+    let traces = [trace_1, trace_2, trace_3]; 
+    Plotly.newPlot(div_id, traces, layout);
+}
+
+streaming_create_1("stream_1") 
+setInterval(() => 
+    streaming_update_1("stream_1", stream_t1, stream_x1, stream_y1, stream_z1, stream_shift_n), 
+    milliseconds
+); 
+</script>
+
+
+<script>
+let stream_data_2 = [[], [], [], []]; 
+let div2 = document.getElementById("stream_2"); 
+
+let legend = {show: true}; 
+
+let series = [
+    {}, // x-axis config
+    {label:"Value_1", stroke:"blue", width:2,}, 
+    {label:"Value_2", stroke:"red", width:2,},
+    {label:"Value_3", stroke:"green", width:2,}
+]
+
+const opts2 = 
+{
+    title: "Real-Time Stream",
+    legend: legend, 
+    scales: { x:{time:true}, y:{auto:true} },
+    series: series, 
+    width: div2.clientWidth, height: 400,
+};
+
+const uplot2 = new uPlot(opts2, stream_data_2, div2);
+
+function stream_func_2() 
+{
+    if (stream_data_2[0].length > stream_shift_n) 
+    {
+        stream_data_2[0].shift(); 
+        stream_data_2[1].shift(); 
+        stream_data_2[2].shift(); 
+        stream_data_2[3].shift(); 
+    }
+    uplot2.setData(stream_data_2);
+}
+
+setInterval(stream_func_2, milliseconds);
+</script>
+
+
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+<script>
+function redraw_a(plot_in, data) 
+{
+    console.log( data ); 
+
+    console.log(plot_in.data); 
+
+    if (!plot_in.data) return ; 
+
+    let plot_1 = plot_in.data[0]; 
+    let plot_2 = plot_in.data[1]; 
+
+    console.log( plot_1.x ); 
+    console.log( plot_1.y ); 
+    plot_1.x = [1, 2, 3, 4, 5, 6, 7, 8],
+    plot_1.y = [10, 15, null, 17, 14, 12, 10, null, 15],
+
+    Plotly.redraw(plot_in); 
+    Plotly.update(plot_in, {}, {'title.text':"Title..."}); 
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+async function graph_create(graph_div) 
+{
+    var trace1 = {
+        x: [], 
+        y: [], 
+        mode: 'lines+markers',
+        connectgaps: true
+    };
+
+    var trace2 = {
+        x: [], 
+        y: [], 
+        mode: 'lines',
+        connectgaps: true
+    };
+
+    var traces = [trace1, trace2]; 
+    var layout = {title: {text: 'Layout Title'},showlegend: true, };
+
+    var plot = document.getElementById(graph_div);
+    Plotly.newPlot(plot, traces, layout, {responsive:true}); 
+
+    let data = []; 
+    redraw_a(plot, data); 
+    return plot; 
+} 
+
+//graph_create("plot_1"); 
+</script>
+    
+
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+<script>
+async function event_sent(event_name, detail) 
+{
+    const customEvent = new CustomEvent(event_name, {detail:detail,});
+    window.dispatchEvent(customEvent); 
+
+    //var json = JSON.stringify(detail,null,2); 
+    //console.log(`[event_sent] event_name:'${event_name}'`, json);
+}
+
+
+async function event_received(event_name, event_func)
+{
+    let result = null; 
+
+    if (event_func)
+    {
+        window.addEventListener(event_name, event_func);
+    }
+    else 
+    {
+        window.addEventListener(event_name, (eventData) => 
+        {
+            console.log(`[event_received] event_func:`, eventData.detail); 
+            result = eventData.detail; 
+        });
+    }
+    
+    return result; 
+}
+
+//event_sent('event_name', {xyz:1} ); 
+//event_received('event_name', async (event) => {event.detail['xyz']} ); 
+</script>
+
+<!------------------------------------------------------------------------>
+<script>
+console.log("Connecting ...");
+
+const serviceUUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
+const LED_CHARACTERISTIC_UUID = "19b10006-e8f2-537e-4f6c-d104768a1214";
+const ACCEL_UUID = "19b10010-e8f2-537e-4f6c-d104768a1214"; 
+const GYROS_UUID = "19b10011-e8f2-537e-4f6c-d104768a1214"; 
+const   IMU_UUID = "19b10020-e8f2-537e-4f6c-d104768a1214"; 
+
+let SELECTED_UUID = GYROS_UUID; 
+
+const DEVICE_ID = "j0+muUYCWDWibt7+G2dU8g=="; 
+const DEVICE_NAME = "Nano33BLE"; 
+
+
+async function accel_update(event)  
+{
+    let characteristic = event.target; 
+    const value = characteristic.value;
+    const floatArray = new Float32Array(value.buffer);
+    stream_total.push(Array.from(floatArray)); 
+    //console.log( Array.from(floatArray) ); 
+
+    stream_t1.push( floatArray[0] / 1e3 );
+    stream_x1.push( floatArray[1]  );
+    stream_y1.push( floatArray[2]  );
+    stream_z1.push( floatArray[3]  );
+/*
+    stream_data_2[0].push( floatArray[0] / 1e3 );
+    stream_data_2[1].push( floatArray[1] );
+    stream_data_2[2].push( floatArray[2] );
+    stream_data_2[3].push( floatArray[3] );
+*/
+}
+
+
+function imu_update(event)
+{
+    let characteristic = event.target; 
+    const value = characteristic.value;
+    const floatArray = new Float32Array(value.buffer);
+    imu_total.push( Array.from(floatArray) ); 
+    //console.log( Array.from(floatArray) ); 
+
+    stream_data_2[0].push( floatArray[0] / 1e3 );
+/*
+    stream_data_2[1].push( floatArray[1] );
+    stream_data_2[2].push( floatArray[2] );
+    stream_data_2[3].push( floatArray[3] );
+*/
+    stream_data_2[1].push( floatArray[4] );
+    stream_data_2[2].push( floatArray[5] );
+    stream_data_2[3].push( floatArray[6] );
+}
+
+
+async function characteristic_accel(characteristic) 
+{
+    if (characteristic.uuid != ACCEL_UUID)  return; 
+
+    console.log(`[characteristic_accel] '${characteristic.uuid}' `); 
+    let notification = await characteristic.startNotifications();
+    characteristic.addEventListener('characteristicvaluechanged', accel_update);
+}
+
+
+async function characteristic_imu(characteristic) 
+{
+    if (characteristic.uuid != IMU_UUID)  return; 
+
+    console.log(`[characteristic_imu] '${characteristic.uuid}' `); 
+    let notification = await characteristic.startNotifications();
+    characteristic.addEventListener('characteristicvaluechanged', imu_update);
+}
+
+
+async function connectToBluetoothDevice(device) 
+{
+    const abortController = new AbortController();
+
+    device.addEventListener('advertisementreceived', async (event) => 
+    {
+        console.log('> Received advertisement from "' + device.name + '"...');
+        abortController.abort();
+        console.log('Connecting to GATT Server from "' + device.name + '"...');
+
+        const server = await device.gatt.connect();
+        console.log( server.connected, server.device.name, server.device.id ); 
+        event_sent('device_gatt_connect', {xyz:server} ); 
+
+        let services = await server.getPrimaryServices(); 
+        //console.log( services ); 
+
+        document.getElementById("id_led").disabled = false;
+        document.getElementById("id_plot3d").disabled = false;
+        document.getElementById("id_disconnect").disabled = false;
+
+        services.forEach( async (service) => 
+        {
+            console.log( service.uuid, service.isPrimary ); 
+
+            let characteristics = await service.getCharacteristics();
+            characteristics.forEach( async (characteristic) => 
+            {
+                characteristic_imu(characteristic); 
+                characteristic_accel(characteristic); 
+            }); 
+        });
+
+        return server; 
+    }, { once: true });
+
+    console.log('Watching advertisements from "' + device.name + '"...');
+    device.watchAdvertisements({ signal: abortController.signal })
+    .catch(error => {console.log('Argh! ' + error); });
+}
+
+let bluetoothDevice = null;
+
+async function Scanning() 
+{
+    var state = true;
+    navigator.bluetooth.getDevices()
+    .then(devices => {
+        for (const device of devices) 
+        {
+            console.log('>> ' + device.name + ' (' + device.id + ')');
+            if (device.name == DEVICE_NAME) 
+            {
+                state = false;
+                connectToBluetoothDevice(device); 
+                bluetoothDevice = device; 
+            }
+        }
+
+    })
+    .catch(error => {console.log('Argh! ' + error); });
+}
+
+Scanning(); 
+
+
+function onDisconnected()
+{
+    document.getElementById("id_led").disabled = true;
+    document.getElementById("id_disconnect").disabled = true;
+
+    console.log(`'${bluetoothDevice.name}' Disconnected!`); 
+}
+
+async function disconnect_func() 
+{
+    if (!bluetoothDevice) {return;}
+
+    bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+    console.log(`'${bluetoothDevice.name}' Disconnecting ...`);
+
+    if (bluetoothDevice.gatt.connected) bluetoothDevice.gatt.disconnect(); 
+    else console.log('> Bluetooth Device is already disconnected');
+}
+
+document.getElementById('id_disconnect').addEventListener("click", disconnect_func);
+
+document.getElementById("id_led").disabled = true;
+document.getElementById("id_disconnect").disabled = true;
+</script>
+
+
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+<script>
+function onButtonClick() 
+{
+    // https://googlechrome.github.io/samples/web-bluetooth/device-info.html
+    // chrome://flags/ -> bluethoot enable!!
+    let filters = [];
+
+    let options = {};
+    if (document.querySelector('#allDevices').checked) {
+        options.acceptAllDevices = true;
+    } 
+    else {
+        options.filters = filters;
+    }
+
+    options.optionalServices = [serviceUUID, ACCEL_UUID, GYROS_UUID, IMU_UUID, LED_CHARACTERISTIC_UUID]; 
+
+    console.log('Requesting Bluetooth Device...');
+    console.log('with ' + JSON.stringify(options));
+
+    navigator.bluetooth.requestDevice(options)
+    .then(device => {
+        console.log('> Name:             ' + device.name);
+        console.log('> Id:               ' + device.id);
+        console.log('> Connected:        ' + device.gatt.connected);
+
+        connectToBluetoothDevice(device); 
+        bluetoothDevice = device; 
+    })
+    .catch(error => {console.log('Argh! ' + error);} );
+}  
+
+
+document.getElementById('id_connect').addEventListener("click", onButtonClick);
+</script>
+      
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+<script>
+let ledState = false;
+
+event_received('device_gatt_connect', async (event) => 
+{
+    let received = event.detail; 
+    const server = received["xyz"]; 
+    console.log( server ); 
+
+    const service = await server.getPrimaryService(serviceUUID);
+
+    ledCharacteristic = await service.getCharacteristic(LED_CHARACTERISTIC_UUID);
+    console.log( ledCharacteristic ); 
+}); 
+
+    
+async function led_func()
+{
+    ledState = !ledState;
+
+    let buffer = new ArrayBuffer(1);
+    let view = new Uint8Array(buffer);
+    view[0] = ledState;
+
+    await ledCharacteristic.writeValue(view);
+}
+document.getElementById('id_led').addEventListener("click", led_func);    
+</script>
+
+
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+<script>
+function normalize(arr) 
+{
+    const min = Math.min(...arr);
+    const max = Math.max(...arr);
+    return arr.map(v => 2 * (v - min) / (max - min) - 1);
+}
+
+
+function createGradientLine(scene, points) 
+{
+  if(points.length == 0) return; 
+
+  let totalLength = 0;
+  const segmentLengths = [0]; 
+
+  for (let i = 1; i < points.length; i++) {
+    const dx = points[i].x - points[i - 1].x;
+    const dy = points[i].y - points[i - 1].y;
+    const dz = points[i].z - points[i - 1].z;
+    const segLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    totalLength += segLen;
+    segmentLengths.push(totalLength);
+  }
+
+  const colors = segmentLengths.map(len => {
+    const t = totalLength > 0 ? len / totalLength : 0;
+    return new BABYLON.Color4(t, 0, 1 - t, 1); // red → blue gradient
+  });
+
+  const lines = BABYLON.MeshBuilder.CreateLineSystem("curve", {
+    lines: [points],
+    colors: [colors],
+    updatable: false,
+  }, scene);
+
+  return lines;
+}
+
+
+function drawBoundingBox(scene, points) 
+{
+  if(points.length == 0) return; 
+
+  const min = new BABYLON.Vector3(
+    Math.min(...points.map(p => p.x)),
+    Math.min(...points.map(p => p.y)),
+    Math.min(...points.map(p => p.z))
+  );
+
+  const max = new BABYLON.Vector3(
+    Math.max(...points.map(p => p.x)),
+    Math.max(...points.map(p => p.y)),
+    Math.max(...points.map(p => p.z))
+  );
+
+  const corners = [
+    new BABYLON.Vector3(min.x, min.y, min.z),
+    new BABYLON.Vector3(max.x, min.y, min.z),
+    new BABYLON.Vector3(max.x, max.y, min.z),
+    new BABYLON.Vector3(min.x, max.y, min.z),
+    new BABYLON.Vector3(min.x, min.y, max.z),
+    new BABYLON.Vector3(max.x, min.y, max.z),
+    new BABYLON.Vector3(max.x, max.y, max.z),
+    new BABYLON.Vector3(min.x, max.y, max.z),
+  ];
+
+  const edges = [
+    [corners[0], corners[1]],
+    [corners[1], corners[2]],
+    [corners[2], corners[3]],
+    [corners[3], corners[0]],
+
+    [corners[4], corners[5]],
+    [corners[5], corners[6]],
+    [corners[6], corners[7]],
+    [corners[7], corners[4]],
+
+    [corners[0], corners[4]],
+    [corners[1], corners[5]],
+    [corners[2], corners[6]],
+    [corners[3], corners[7]],
+  ];
+
+  const bbox = BABYLON.MeshBuilder.CreateLineSystem("bboxEdges", {
+    lines: edges,
+    updatable: false,
+  }, scene);
+
+  bbox.color = new BABYLON.Color3(0, 1, 0); 
+  return bbox;
+}
+
+
+function points_create() 
+{
+    let x1 = stream_total.map(row => row[1]);
+    let y1 = stream_total.map(row => row[2]);
+    let z1 = stream_total.map(row => row[3]);
+
+    let normX = normalize(x1);
+    let normY = normalize(y1);
+    let normZ = normalize(z1);
+    console.log(`[points_create] length:${normX.length}`); 
+
+    let t1 = stream_total.map(row => row[0] / 1e3);
+//    streaming_update_1("stream_3", t1, normX, normY, normZ, 1000); 
+    streaming_update_1("stream_3", t1, x1, y1, z1, 1000); 
+
+    const points = [];
+    for (let i = 0; i < normX.length; i++) points.push(new BABYLON.Vector3(normX[i], normY[i], normZ[i]));
+    return points; 
+}
+
+
+function plot3d_create_1() 
+{
+    const container = document.getElementById('plot_3_canvas');
+    const engine = new BABYLON.Engine(container, true);
+    const scene = new BABYLON.Scene(engine);
+    scene.clearColor = new BABYLON.Color4(0, 0, 0, 1); 
+
+    const camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, 4, BABYLON.Vector3.Zero(), scene);
+    camera.attachControl(container, true);
+    camera.lowerRadiusLimit = 1;
+    camera.upperRadiusLimit = 5;
+    camera.wheelDeltaPercentage = 0.1;
+
+    new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+
+    let points = [];
+    let lines = null;
+    let bbox = null; 
+    setInterval(() => 
+    {
+        points = points_create();
+
+        if (bbox) bbox.dispose();
+        bbox = drawBoundingBox(scene, points);
+
+        if (lines) lines.dispose();
+        lines = createGradientLine(scene, points);
+    }, 1000);
+
+    engine.runRenderLoop(() => {scene.render();});
+    window.addEventListener("resize", () => {engine.resize();});
+}
+
+document.getElementById('id_plot3d').addEventListener("click", plot3d_create_1);    
+document.getElementById("id_plot3d").disabled = true;
+
+streaming_create_1("stream_3") 
+plot3d_create_1(); 
+</script>
+
+
+<!------------------------------------------------------------------------>
+<script>
+function saveCSV(data,header,filename) 
+{
+  const rows = data.map(row => row.join(","));
+  const csv = [header, ...rows].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('id_save_1').addEventListener("click", 
+    () => saveCSV(stream_total, "timestamp,ax,ay,az", "stream_total.csv") 
+);    
+
+document.getElementById('id_save_2').addEventListener("click", 
+    () => saveCSV(imu_total, "timestamp,ax,ay,az,gx,gy,gz,mx,my,mz", "imu_total.csv") 
+);    
+
+</script>
+
+
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+<script>
+  const options = {
+    clean: true,
+    connectTimeout: 4000,
+    clientId: 'emqx_test',
+    username: 'emqx_test',
+    password: 'emqx_test',
+}
+
+const url = 'ws://broker.emqx.io:8083/mqtt'
+const client  = mqtt.connect(url, options)
+console.log( `socket:'${client.stream.socket.url}' ` );
+
+function mqtt_connected() 
+{
+  console.log('mqtt_connected:'); 
+  client.subscribe('test', function (err) 
+  {
+    if (!err) 
+    {
+      client.publish('test', 'Hello mqtt')
+    }
+  })
+}
+
+function mqtt_received(topic, message) 
+{
+  console.log(`mqtt_connected: '${message.toString()}' `); 
+  client.end();
+}
+
+client.on('message', mqtt_received); 
+client.on('connect', mqtt_connected); 
+
+
+</script>
+
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+
+
+
+<!------------------------------------------------------------------------>
+<!------------------------------------------------------------------------>
+</body>
+</html>
