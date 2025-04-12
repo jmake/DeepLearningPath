@@ -16,12 +16,14 @@ adb --version
 java --version 
 emulator -list-avds
 
-#& "D:\z2025_1\Downloads\Expo.Orbit-2.0.2-x64.Setup.exe"
+###& "D:\z2025_1\Downloads\Expo.Orbit-2.0.2-x64.Setup.exe"
+#
+### npx @react-native-community/cli@latest init MyAppX ??
+### cd MyAppX
+### npx react-native start  ?
 
-## npx @react-native-community/cli@latest init MyAppX ??
-## cd MyAppX
-## npx react-native start  ?
-#npx react-native run-android
+## npx react-native start --reset-cache 
+npx react-native run-android
 
 $env:Path = $originalPath
 
@@ -55,4 +57,12 @@ npm run web
 
 
 
+#>
+
+<#
+https://www.emqx.com/en/blog/how-to-use-mqtt-in-react-native
+
+npm install react_native_mqtt  
+
+npm install @rneui/base @rneui/themed
 #>
