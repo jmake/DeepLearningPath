@@ -1,0 +1,229 @@
+import { BleManager } from 'react-native-ble-plx';
+
+import React, { useEffect, useState } from 'react';
+
+import { PermissionsAndroid, Platform, FlatList, StyleSheet } from 'react-native';
+import { View, Button, Text, Pressable } from 'react-native';
+
+const manager = new BleManager();
+
+export function CurrentTime () 
+{
+    //let data = useSpicyData(); 
+
+    const [time, setTime] = useState(new Date().toLocaleTimeString());
+
+    useEffect(() => {
+    const interval = setInterval(() => 
+    {
+        let t = new Date().toLocaleTimeString(); 
+        setTime( t );
+        //data.setTime( t ); 
+        console.log(`time:${t}`);
+    }, 1000);
+    return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <View> 
+            <Text>
+                <Text style={{ color: 'red' }}>Current Time: </Text>
+                <Text style={{ color: 'blue' }}>'{time}'</Text>
+            </Text>
+        </View>
+    );
+    //return ( <Text> </Text> );
+};
+
+
+const requestPermissions = async () => {
+  if (Platform.OS === 'android') {
+    await PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+      PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+    ]);
+  }
+};
+
+/*
+async function connectToDevice(device) 
+{
+  try {
+    console.log(`🔌 Connecting to device: ${device.name}`);
+
+    const connectedDevice = await manager.connectToDevice(device.id);
+    console.log('✅ Connected:', connectedDevice.name);
+
+    await connectedDevice.discoverAllServicesAndCharacteristics();
+    const services = await connectedDevice.services();
+
+    for (const service of services) {
+      console.log(`🔧 Service: ${service.uuid}`);
+
+      const characteristics = await service.characteristics();
+
+      for (const characteristic of characteristics) {
+        console.log(`📍 Characteristic: ${characteristic.uuid}`);
+      }
+    }
+
+    return connectedDevice;
+  } catch (error) {
+    console.warn('❌ Connection error:', error);
+  }
+}
+*/
+
+async function connectToDevice(device) {
+  try {
+    console.log('🔄 Disconnecting from all connected devices...');
+
+    const connectedDevices = await manager.connectedDevices([]);
+    for (const dev of connectedDevices) {
+      console.log(`🔌 Disconnecting: ${dev.name}`);
+      await manager.cancelDeviceConnection(dev.id);
+    }
+
+    console.log(`🔌 Connecting to device: ${device.name}`);
+
+    const connectedDevice = await manager.connectToDevice(device.id);
+    console.log(`+ '${connectedDevice.name}' connected!`);
+
+    await connectedDevice.discoverAllServicesAndCharacteristics();
+    const services = await connectedDevice.services();
+
+    for (const service of services) {
+      console.log(`  [${connectedDevice.name}] Service: ${service.uuid}`);
+
+      const characteristics = await service.characteristics();
+
+      for (const characteristic of characteristics) {
+        console.log(`    [${connectedDevice.name}] Characteristic: ${characteristic.uuid}`);
+      }
+    }
+
+    return connectedDevice;
+  } catch (error) {
+    console.warn('❌ Connection error:', error);
+  }
+}
+
+
+const App = () => {
+  console.log("App Running...");
+
+  const [devices, setDevices] = useState([]);
+
+  useEffect(() => {
+    requestPermissions();
+    return () => manager.destroy();
+  }, []);
+
+  const startScan = () => {
+    setDevices([]);
+    manager.startDeviceScan(null, null, (error, device) => {
+      if (error) {
+        console.warn(error);
+        return;
+      }
+
+      if (device?.name) {
+        console.log(`Found device: '${device.name}'`);
+
+        setDevices((prev) => {
+          if (prev.find((d) => d.id === device.id)) return prev;
+          return [...prev, device];
+        });
+      }
+    });
+
+    setTimeout(() => manager.stopDeviceScan(), 10000);
+  };
+
+  return (
+    <View style={styles.container}>
+      <CurrentTime />
+      <Button title="Scan for BLE Devices..." onPress={startScan} />
+      <FlatList
+        data={devices}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Pressable onPress={() => connectToDevice(item)}>
+            <Text style={styles.device}>
+              {item.name} ({item.id})
+            </Text>
+          </Pressable>
+        )}
+      />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, paddingTop: 50 },
+  device: { marginVertical: 8, fontSize: 16, color: 'blue' },
+});
+
+export default App;
+
+/*
+const App = () => 
+{
+  console.log("App Running..."); 
+
+  const [devices, setDevices] = useState([]);
+
+  useEffect(() => {
+    requestPermissions();
+    return () => manager.destroy();
+  }, []);
+
+
+  const startScan = () => 
+  {
+    setDevices([]);
+    manager.startDeviceScan(null, null, (error, device) => {
+      if (error) {
+        console.warn(error);
+        return;
+      }
+
+      if (device?.name) 
+      {
+        console.log(`Found device: '${device.name}' ` ); 
+
+        setDevices((prev) => 
+        {
+          if (prev.find((d) => d.id === device.id)) return prev;
+          return [...prev, device];
+        });
+      }
+    });
+
+    setTimeout(() => manager.stopDeviceScan(), 10000);
+  };
+
+  return (
+    <View style={styles.container}>
+      <CurrentTime />
+      <Button title="Scan for BLE Devices..." onPress={startScan} />
+      <FlatList
+        data={devices}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Text style={styles.device}>{item.name} ({item.id})</Text>
+        )}
+      />
+    </View>
+  );
+};
+
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, paddingTop: 50 },
+  device: { marginVertical: 8, fontSize: 16 },
+});
+
+export default App;
+*/
