@@ -15,19 +15,10 @@ export const SpicyContext = createContext();
 export const SpicyProvider = ({ children }) => 
 {
   const [time, setTime] = useState(null);
-
-  const data = useRef([]);
-
-  const lastData = () => 
-  {
-    if (!data.current.length) return `[${time}] waiting...` ;
-    const last = Array.from(data.current[data.current.length - 1]);
-    return JSON.stringify(last);
-  };
-  
+  const bleDataRef = useRef([]);
 
   return (
-    <SpicyContext.Provider value={{data, time, setTime, lastData}}>
+    <SpicyContext.Provider value={{ bleDataRef, time, setTime}}>
       {children}
     </SpicyContext.Provider>
   );
@@ -160,101 +151,51 @@ const requestPermissions = async () =>
 };
 
 const IMU_UUID = "19b10020-e8f2-537e-4f6c-d104768a1214"; 
-const NOTIFICATION_ID = "imu"; 
-let isNotifying = false;
-let currentCharacteristic = null; 
+
 
 //---------------------------------------------------------------------------// 
-function imu_update( char, dataBase, time) 
+function imu_update(base64Value) 
 {
-  currentCharacteristic = char; 
-
-  let base64Value = char.value; 
-
   const buffer = new Uint8Array(atob(base64Value).split("").map(char => char.charCodeAt(0)));
-  const floatArray = new Float32Array(buffer.buffer);
-  let data = Array.from(floatArray) ; 
 
-  console.log(time, data); 
-  dataBase.current.push(data);
+  const floatArray = new Float32Array(buffer.buffer);
+  console.log( Array.from(floatArray) ); 
+
+  //let data = useSpicyData(); 
+  //console.log( data );
 }
 
 
-async function characteristic_general(chars, data, time) 
+async function characteristic_general(chars) 
 {
   if(!currentDevice) return; 
   
   console.log(`[characteristic_general] '${chars.uuid}'`);
   if (chars.uuid !== IMU_UUID) return;
 
-  chars.monitor( async (error, char) => 
+  chars.monitor((error, char) => 
   {
     if (error) 
     {
-      // something strange with deconnecting, however works...
-      console.log(`[characteristic_general] '${device.name}' disconnecting... `);
-      await manager.cancelDeviceConnection(device.id);
-      console.log(`[characteristic_general] '${device.name}' disconnected!! `);
-      isNotifying = false; 
-
-      console.warn(`[characteristic_general] '${error}' !!`);
+      console.warn(`[characteristic_general] error : '${error}'`);
       return;
     }
 
     if (char?.value) 
     {
-      //console.log(`[characteristic_general] '${chars.uuid}' '${char.value}' `);
-      imu_update(char, data, time); 
-      isNotifying = true; 
+      console.log(`[characteristic_general] '${chars.uuid}' '${char.value}' `);
+      imu_update(char.value); 
     }
     else
     {
       console.log(`[characteristic_general] '${chars.uuid}' 'NO FOUND!' `);
     }
-  }, NOTIFICATION_ID);
-}
-
-//---------------------------------------------------------------------------// 
-async function disconnectDevice(device, characteristic) 
-{
-  if (!device) return;
-
-  console.log(`[BLE] '${device.name}' Disconnecting preparation ...`);
-
-  try 
-  {
-    const connected = await device.isConnected();
-    console.log(`[BLE] '${device.name}' connected:'${connected}' `);
-
-    if (connected) 
-    {
-      console.log(`[BLE] '${device.name}' canceling :'${NOTIFICATION_ID}' `);
-      await manager.cancelTransaction(NOTIFICATION_ID); 
-
-      try {
-        await characteristic.monitor(null); // May throw if not properly subscribed
-      } catch (e) {
-        console.log('Monitor cancel skipped or failed:', e.message);
-      }
-
-      console.log(`[BLE] '${device.name}' disconnecting... `);
-      await manager.cancelDeviceConnection(device.id);
-
-      currentDevice = null;      
-      currentCharacteristic = null; 
-      
-      console.log(`[BLE] Device '${device.name}' disconnected! `);
-    } else {
-      console.log('[BLE] Bluetooth device is already disconnected');
-    }
-  } catch (error) {
-    console.warn('[BLE] Error during disconnection:', error);
-  }
+  });
 }
 
 
 //---------------------------------------------------------------------------// 
-async function device_connecting(device, data, time) 
+async function connectToDevice(device) 
 {
   try 
   {
@@ -263,10 +204,8 @@ async function device_connecting(device, data, time)
     if(currentDevice) 
     {
       console.log(`🔌 Disconnecting: '${currentDevice.name}' `);
-      //await manager.cancelDeviceConnection(currentDevice.id);
-      await disconnectDevice(currentDevice, currentCharacteristic); 
+      await manager.cancelDeviceConnection(currentDevice.id);
       currentDevice = null;      
-      currentCharacteristic = null; 
     }
 
     console.log(`🔌 Connecting to device: ${device.name}`);
@@ -287,7 +226,7 @@ async function device_connecting(device, data, time)
       for (const characteristic of characteristics) 
       {
         console.log(`    [${connectedDevice.name}] Characteristic: ${characteristic.uuid}`);
-        characteristic_general(characteristic, data, time); 
+        characteristic_general(characteristic); 
       }
     }
 
@@ -314,12 +253,11 @@ export function UIMain(props)
   const [connecting, setConnecting] = useState(false);
   const [connectedDevice, setConnectedDevice] = useState(null);
 
-  const handleDevicePress = async (device) => 
-  {
+  const handleDevicePress = async (device) => {
     setConnecting(true);
-    setConnectedDevice(device); 
+    setConnectedDevice(device); // Set early for title during connecting
 
-    const result = await device_connecting(device, spicyData.data, spicyData.time);
+    const result = await connectToDevice(device);
     console.log(`[UIMain] '${result.name}' connected!`);
 
     if (result) {
@@ -355,7 +293,7 @@ export function UIMain(props)
       />
 
       <View style={{ flex: 1, padding: 20 }}>
-        <Text style={{ color: 'red' }}> { spicyData.lastData() } </Text>
+        <Text style={{ color: 'red' }}> { spicyData?.time ?? 'No time yet' } </Text>
       </View>
 
       <FlatList
@@ -404,7 +342,6 @@ const MainContent = () =>
       console.log(`[BLE] Disconnecting: '${currentDevice.name}' `);
       await manager.cancelDeviceConnection(currentDevice.id);
       currentDevice = null;      
-
       setIsScanning(true);
     }
     else
